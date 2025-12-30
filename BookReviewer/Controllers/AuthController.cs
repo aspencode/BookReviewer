@@ -1,8 +1,7 @@
-﻿using BookReviewer.Data;
-using BookReviewer.Models.Entities;
+﻿using BookReviewer.Models.Identity;
 using BookReviewer.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BookReviewer.Controllers
 {
@@ -10,64 +9,82 @@ namespace BookReviewer.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly JwtService _jwtService;
 
-        // Inject both DbContext and JwtService
-        public AuthController(ApplicationDbContext context, JwtService jwtService)
+        public AuthController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            JwtService jwtService)
         {
-            _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
             _jwtService = jwtService;
         }
 
-        // Registration endpoint
+        // -------------------------
+        // REGISTER
+        // POST: /api/Auth/register
+        // -------------------------
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
+            var existingUser = await _userManager.FindByNameAsync(dto.Username);
+            if (existingUser != null)
                 return BadRequest("Username already exists.");
 
-            var (hash, salt) = PasswordHelper.CreatePasswordHash(dto.Password);
-
-            var user = new User
+            var user = new ApplicationUser
             {
-                Username = dto.Username,
-                Email = dto.Email,
-                PasswordHash = hash,
-                PasswordSalt = salt,
-                Role = "User"
+                UserName = dto.Username,
+                Email = dto.Email
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            var result = await _userManager.CreateAsync(user, dto.Password);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors.Select(e => e.Description));
+
+            // Optional: assign default role
+            await _userManager.AddToRoleAsync(user, "User");
 
             return Ok("User registered successfully.");
         }
 
-        // <--- Put the login endpoint here
+        // -------------------------
+        // LOGIN
+        // POST: /api/Auth/login
+        // -------------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            // 1. Find user in DB
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Username == dto.Username);
-
+            var user = await _userManager.FindByNameAsync(dto.Username);
             if (user == null)
                 return Unauthorized("Invalid username or password.");
 
-            // 2. Verify password
-            bool validPassword = PasswordHelper.VerifyPassword(dto.Password, user.PasswordHash, user.PasswordSalt);
-            if (!validPassword)
+            var signInResult = await _signInManager.CheckPasswordSignInAsync(
+                user,
+                dto.Password,
+                lockoutOnFailure: false
+            );
+
+            if (!signInResult.Succeeded)
                 return Unauthorized("Invalid username or password.");
 
-            // 3. Generate JWT
-            string token = _jwtService.GenerateToken(user.Username, user.Role);
+            // Get user's role
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "User";
 
-            // 4. Return token to client
+            // Generate JWT
+            var token = _jwtService.GenerateToken(user.Id, role, user.UserName!);
+
             return Ok(new { token });
         }
     }
 
+    // -------------------------
     // DTOs
+    // -------------------------
     public record RegisterDto(string Username, string Email, string Password);
     public record LoginDto(string Username, string Password);
 }

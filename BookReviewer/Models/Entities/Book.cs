@@ -8,20 +8,22 @@ namespace BookReviewer.Models.Entities
 
         [MaxLength(13)]
         public string ISBN { get; set; } = default!;
+
         public string Title { get; set; } = default!;
         public int Length { get; set; }
         public string Language { get; set; } = default!;
         public DateOnly ReleaseDate { get; set; }
         public string? Description { get; set; }
 
+        // Optional self-reference for parent/series
         public int? ParentBookId { get; set; }
         public Book? ParentBook { get; set; }
 
-        public int AuthorId { get; set; }
-        public Author Author { get; set; } = default!;
-
-        public ICollection<Review> Reviews { get; set; } = new List<Review>();
+        // Many-to-many relationships
+        public ICollection<Author> Authors { get; set; } = new List<Author>();
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
-    }
 
+        // One-to-many relationship
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    }
 }

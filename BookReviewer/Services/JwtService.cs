@@ -15,23 +15,33 @@ namespace BookReviewer.Services
             _config = config;
         }
 
-        public string GenerateToken(string username, string role)
+        public string GenerateToken(int userId, string role, string username)
         {
             var jwtSettings = _config.GetSection("Jwt");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSettings["Key"]!)
+            );
+
+            var creds = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha512
+            );
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.Role, role)
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()), // user ID
+                new Claim(ClaimTypes.Name, username),                       // username
+                new Claim(ClaimTypes.Role, role)                            // role
             };
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiresInMinutes"])),
+                expires: DateTime.UtcNow.AddMinutes(
+                    double.Parse(jwtSettings["ExpiresInMinutes"]!)
+                ),
                 signingCredentials: creds
             );
 
