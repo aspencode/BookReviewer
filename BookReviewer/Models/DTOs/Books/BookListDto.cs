@@ -6,6 +6,7 @@
         public string ISBN { get; set; } = default!;
         public string Title { get; set; } = default!;
 
+        public double? AverageRating { get; set; }
         public List<string> Authors { get; set; } = new();
     }
 }

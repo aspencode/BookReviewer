@@ -28,7 +28,8 @@ namespace BookReviewer.Controllers
                     Id = b.Id,
                     ISBN = b.ISBN,
                     Title = b.Title,
-                    Authors = b.Authors.Select(a => a.Name).ToList()
+                    Authors = b.Authors.Select(a => a.Name).ToList(),
+                    AverageRating = (double?)_context.CalculateAverageRating(b.Id),
                 })
                 .ToListAsync();
 
@@ -52,9 +53,7 @@ namespace BookReviewer.Controllers
                     Description = b.Description,
                     Authors = b.Authors.Select(a => a.Name).ToList(),
                     Tags = b.Tags.Select(t => t.Name).ToList(),
-                    AverageRating = b.Reviews.Any()
-                        ? b.Reviews.Average(r => r.Rating)
-                        : null,
+                    AverageRating = (double?)_context.CalculateAverageRating(b.Id),
                     ReviewCount = b.Reviews.Count
                 })
                 .FirstOrDefaultAsync();

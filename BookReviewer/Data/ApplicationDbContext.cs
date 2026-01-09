@@ -15,6 +15,7 @@ namespace BookReviewer.Data
         public DbSet<Author> Authors => Set<Author>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Tag> Tags => Set<Tag>();
+        public double? CalculateAverageRating(int bookId) => throw new NotSupportedException();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -46,6 +47,9 @@ namespace BookReviewer.Data
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_Review_Rating",
                     "\"Rating\" >= 0 AND \"Rating\" <= 20"));
+
+            modelBuilder.HasDbFunction(typeof(ApplicationDbContext).GetMethod(nameof(CalculateAverageRating), new[] { typeof(int) })!).HasName("calculate_average_rating");
+
         }
     }
 }
