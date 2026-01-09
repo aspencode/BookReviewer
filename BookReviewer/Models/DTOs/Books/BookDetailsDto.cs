@@ -1,4 +1,6 @@
-﻿namespace BookReviewer.Models.DTOs.Books
+﻿using BookReviewer.Models.DTOs.Reviews;
+
+namespace BookReviewer.Models.DTOs.Books
 {
     public class BookDetailsDto
     {
@@ -15,5 +17,6 @@
 
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
+        public List<ReviewDisplayDto> Reviews { get; set; } = new();
     }
 }
