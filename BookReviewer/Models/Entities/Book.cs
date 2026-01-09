@@ -15,9 +15,6 @@ namespace BookReviewer.Models.Entities
         public DateOnly ReleaseDate { get; set; }
         public string? Description { get; set; }
 
-        // Optional self-reference for parent/series
-        public int? ParentBookId { get; set; }
-        public Book? ParentBook { get; set; }
 
         // Many-to-many relationships
         public ICollection<Author> Authors { get; set; } = new List<Author>();
