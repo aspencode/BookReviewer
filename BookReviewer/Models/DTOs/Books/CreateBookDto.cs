@@ -19,7 +19,8 @@ namespace BookReviewer.Models.DTOs.Books
 
         public string? Description { get; set; }
 
-        // Relations expressed as IDs
+        public string? ImageUrl { get; set; }
+
         public List<int> AuthorIds { get; set; } = new();
         public List<int> TagIds { get; set; } = new();
     }

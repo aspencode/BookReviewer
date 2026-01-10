@@ -7,6 +7,8 @@
         public string Title { get; set; } = default!;
 
         public decimal? AverageRating { get; set; }
+
+        public string? ImageUrl { get; set; }
         public List<string> Authors { get; set; } = new();
     }
 }

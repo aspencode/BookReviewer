@@ -1,5 +1,6 @@
 ﻿using BookReviewer.Data;
 using BookReviewer.Models.DTOs.Books;
+using BookReviewer.Models.DTOs.Common;
 using BookReviewer.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +20,18 @@ namespace BookReviewer.Controllers
         }
 
         // GET: api/books
+        // GET: api/books?pageNumber=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<BookListDto>>> GetBooks()
+        public async Task<ActionResult<PagedResult<BookListDto>>> GetBooks([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var books = await _context.Books
+            var query = _context.Books.AsQueryable();
+
+            var totalCount = await query.CountAsync();
+
+            var books = await query
+                .OrderBy(b => b.Title) 
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(b => new BookListDto
                 {
                     Id = b.Id,
@@ -30,10 +39,19 @@ namespace BookReviewer.Controllers
                     Title = b.Title,
                     Authors = b.Authors.Select(a => a.Name).ToList(),
                     AverageRating = _context.CalculateAverageRating(b.Id),
+                    ImageUrl = b.ImageUrl 
                 })
                 .ToListAsync();
 
-            return Ok(books);
+            var result = new PagedResult<BookListDto>
+            {
+                Items = books,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = pageNumber
+            };
+
+            return Ok(result);
         }
 
         // GET: api/books/{id}
@@ -54,6 +72,7 @@ namespace BookReviewer.Controllers
                     Authors = b.Authors.Select(a => a.Name).ToList(),
                     Tags = b.Tags.Select(t => t.Name).ToList(),
                     AverageRating = _context.CalculateAverageRating(b.Id),
+                    ImageUrl = b.ImageUrl,
                     ReviewCount = b.Reviews.Count
                 })
                 .FirstOrDefaultAsync();
@@ -103,6 +122,7 @@ namespace BookReviewer.Controllers
                 Language = dto.Language,
                 ReleaseDate = dto.ReleaseDate,
                 Description = dto.Description,
+                ImageUrl = dto.ImageUrl,
                 Authors = authors,
                 Tags = tags
             };
@@ -122,6 +142,7 @@ namespace BookReviewer.Controllers
                     Language = book.Language,
                     ReleaseDate = book.ReleaseDate,
                     Description = book.Description,
+                    ImageUrl = book.ImageUrl,
                     Authors = authors.Select(a => a.Name).ToList(),
                     Tags = tags.Select(t=>t.Name).ToList(),
                     AverageRating = null,

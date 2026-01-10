@@ -62,7 +62,7 @@ public class TagsController : ControllerBase
                 Id = b.Id,
                 ISBN = b.ISBN,
                 Title = b.Title,
-                AverageRating = (decimal?)_context.CalculateAverageRating(b.Id),
+                AverageRating = _context.CalculateAverageRating(b.Id),
                 Authors = b.Authors.Select(a => a.Name).ToList()
             })
             .ToListAsync();

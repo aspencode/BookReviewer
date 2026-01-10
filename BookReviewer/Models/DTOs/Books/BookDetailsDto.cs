@@ -15,8 +15,10 @@ namespace BookReviewer.Models.DTOs.Books
         public List<string> Authors { get; set; } = new();
         public List<string> Tags { get; set; } = new();
 
-        public double? AverageRating { get; set; }
+        public decimal? AverageRating { get; set; }
         public int ReviewCount { get; set; }
+
+        public string? ImageUrl { get; set; }
         public List<ReviewDto> Reviews { get; set; } = new();
         
     }

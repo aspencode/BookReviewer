@@ -14,6 +14,7 @@ namespace BookReviewer.Models.Entities
         public string Language { get; set; } = default!;
         public DateOnly ReleaseDate { get; set; }
         public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
 
 
         // Many-to-many relationships
