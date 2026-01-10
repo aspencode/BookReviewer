@@ -15,7 +15,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Twoja API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "BookReviewer API", Version = "v1" });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -24,7 +24,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Wpisz 'Bearer' [spacja] i Twój token."
+        Description = "Enter 'Bearer' [space] and your token."
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
         {

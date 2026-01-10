@@ -21,6 +21,7 @@ namespace BookReviewer.Models.Entities
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
 
         // One-to-many relationship
-        public ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>(); 
+
     }
 }

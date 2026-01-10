@@ -41,6 +41,19 @@ namespace BookReviewer.Data
                 .UsingEntity(j => j.ToTable("BookAuthor"));
 
             // -------------------------
+            // Book ↔ Tag many-to-many
+            // -------------------------
+
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<Book>()
+                .HasMany(b => b.Tags)
+                .WithMany(t => t.Books)
+                .UsingEntity(j => j.ToTable("BookTags"));
+
+            // -------------------------
             // Review rating check constraint (PostgreSQL)
             // -------------------------
             modelBuilder.Entity<Review>()

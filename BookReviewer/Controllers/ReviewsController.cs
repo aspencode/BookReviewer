@@ -54,11 +54,11 @@ namespace BookReviewer.Controllers
         }
 
         [HttpGet("book/{bookId}")]
-        public async Task<ActionResult<IEnumerable<ReviewDisplayDto>>> GetReviewsForBook(int bookId)
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsForBook(int bookId)
         {
             var reviews = await _context.Reviews
                 .Where(r => r.BookId == bookId)
-                .Select(r => new ReviewDisplayDto
+                .Select(r => new ReviewDto
                 {
                     Id = r.Id,
                     Rating = r.Rating,

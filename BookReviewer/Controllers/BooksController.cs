@@ -70,6 +70,8 @@ namespace BookReviewer.Controllers
         public async Task<ActionResult<BookDetailsDto>> CreateBook(
             CreateBookDto dto)
         {
+
+            //check on authors
             if (dto.AuthorIds.Count == 0)
                 return BadRequest("A book must have at least one author.");
 
@@ -80,7 +82,20 @@ namespace BookReviewer.Controllers
             if (authors.Count != dto.AuthorIds.Count)
                 return BadRequest("One or more author IDs do not exist.");
 
-            var book = new Book
+            //check on tags
+            List<Tag> tags = new();
+            if (dto.TagIds != null) 
+            {
+                tags = await _context.Tags
+                    .Where(t => dto.TagIds.Contains(t.Id))
+                    .ToListAsync();
+
+                if (tags.Count !=dto.TagIds.Count)
+                    return BadRequest("One or more tag IDs do not exist.");
+            }
+
+
+                var book = new Book
             {
                 ISBN = dto.ISBN,
                 Title = dto.Title,
@@ -88,7 +103,8 @@ namespace BookReviewer.Controllers
                 Language = dto.Language,
                 ReleaseDate = dto.ReleaseDate,
                 Description = dto.Description,
-                Authors = authors
+                Authors = authors,
+                Tags = tags
             };
 
             _context.Books.Add(book);
@@ -107,7 +123,7 @@ namespace BookReviewer.Controllers
                     ReleaseDate = book.ReleaseDate,
                     Description = book.Description,
                     Authors = authors.Select(a => a.Name).ToList(),
-                    Tags = new(),
+                    Tags = tags.Select(t=>t.Name).ToList(),
                     AverageRating = null,
                     ReviewCount = 0
                 }

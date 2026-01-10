@@ -1,6 +1,6 @@
 ﻿namespace BookReviewer.Models.DTOs.Reviews
 {
-    public class ReviewDisplayDto
+    public class ReviewDto
     {
         public int Id { get; set; }
         public int Rating { get; set; }
