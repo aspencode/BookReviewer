@@ -70,5 +70,29 @@ namespace BookReviewer.Controllers
 
             return Ok(reviews);
         }
+
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteReview(int id)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            int userId = int.Parse(userIdClaim);
+
+            var review = await _context.Reviews.FindAsync(id);
+            if (review == null)
+                return NotFound();
+
+            if (review.UserId != userId)
+                return Forbid();
+
+            _context.Reviews.Remove(review);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }

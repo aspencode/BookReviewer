@@ -1,4 +1,5 @@
 ﻿using BookReviewer.Data;
+using BookReviewer.Models.DTOs.Books;
 using BookReviewer.Models.DTOs.Tags;
 using BookReviewer.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -46,4 +47,27 @@ public class TagsController : ControllerBase
             Name = tag.Name
         };
     }
+
+    [HttpGet("{tagId}/books")]
+    public async Task<ActionResult<IEnumerable<BookListDto>>> GetBooksByTag(int tagId)
+    {
+        var tagExists = await _context.Tags.AnyAsync(t => t.Id == tagId);
+        if (!tagExists)
+            return NotFound("Tag not found.");
+
+        var books = await _context.Books
+            .Where(b => b.Tags.Any(t => t.Id == tagId))
+            .Select(b => new BookListDto
+            {
+                Id = b.Id,
+                ISBN = b.ISBN,
+                Title = b.Title,
+                AverageRating = (decimal?)_context.CalculateAverageRating(b.Id),
+                Authors = b.Authors.Select(a => a.Name).ToList()
+            })
+            .ToListAsync();
+
+        return Ok(books);
+    }
+
 }

@@ -15,7 +15,7 @@ namespace BookReviewer.Data
         public DbSet<Author> Authors => Set<Author>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Tag> Tags => Set<Tag>();
-        public double? CalculateAverageRating(int bookId) => throw new NotSupportedException();
+        public decimal? CalculateAverageRating(int bookId) => throw new NotSupportedException();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,13 +24,6 @@ namespace BookReviewer.Data
             // Set default schema for all EF tables
             //modelBuilder.HasDefaultSchema("bookdb_schema");
 
-            // -------------------------
-            // Book ↔ Tag many-to-many
-            // -------------------------
-            modelBuilder.Entity<Book>()
-                .HasMany(b => b.Tags)
-                .WithMany(t => t.Books)
-                .UsingEntity(j => j.ToTable("BookTag"));
 
             // -------------------------
             // Book ↔ Author many-to-many

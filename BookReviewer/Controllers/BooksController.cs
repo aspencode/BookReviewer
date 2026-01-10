@@ -29,7 +29,7 @@ namespace BookReviewer.Controllers
                     ISBN = b.ISBN,
                     Title = b.Title,
                     Authors = b.Authors.Select(a => a.Name).ToList(),
-                    AverageRating = (double?)_context.CalculateAverageRating(b.Id),
+                    AverageRating = _context.CalculateAverageRating(b.Id),
                 })
                 .ToListAsync();
 
@@ -53,7 +53,7 @@ namespace BookReviewer.Controllers
                     Description = b.Description,
                     Authors = b.Authors.Select(a => a.Name).ToList(),
                     Tags = b.Tags.Select(t => t.Name).ToList(),
-                    AverageRating = (double?)_context.CalculateAverageRating(b.Id),
+                    AverageRating = _context.CalculateAverageRating(b.Id),
                     ReviewCount = b.Reviews.Count
                 })
                 .FirstOrDefaultAsync();
@@ -129,5 +129,71 @@ namespace BookReviewer.Controllers
                 }
             );
         }
+
+        [HttpPost("{id}/tags")]
+        [Authorize]
+        public async Task<ActionResult<BookDetailsDto>> AddTagsToBook(int id, AddTagsToBookDto dto)
+        {
+            var book = await _context.Books
+                .Include(b => b.Authors)
+                .Include(b => b.Tags)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (book == null)
+                return NotFound("Book not found.");
+
+            var tags = await _context.Tags
+                .Where(t => dto.TagIds.Contains(t.Id))
+                .ToListAsync();
+
+            if (tags.Count != dto.TagIds.Count)
+                return BadRequest("One or more tag IDs do not exist.");
+
+            foreach (var tag in tags)
+            {
+                if (!book.Tags.Any(t => t.Id == tag.Id))
+                    book.Tags.Add(tag);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new BookDetailsDto
+            {
+                Id = book.Id,
+                ISBN = book.ISBN,
+                Title = book.Title,
+                Length = book.Length,
+                Language = book.Language,
+                ReleaseDate = book.ReleaseDate,
+                Description = book.Description,
+                Authors = book.Authors.Select(a => a.Name).ToList(),
+                Tags = book.Tags.Select(t => t.Name).ToList(),
+                AverageRating = _context.CalculateAverageRating(book.Id),
+                ReviewCount = book.Reviews.Count
+            });
+        }
+
+
+        [HttpDelete("{bookId}/tags/{tagId}")]
+        [Authorize]
+        public async Task<IActionResult> RemoveTagFromBook(int bookId, int tagId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Tags)
+                .FirstOrDefaultAsync(b => b.Id == bookId);
+
+            if (book == null)
+                return NotFound("Book not found.");
+
+            var tag = book.Tags.FirstOrDefault(t => t.Id == tagId);
+            if (tag == null)
+                return NotFound("Tag not assigned to this book.");
+
+            book.Tags.Remove(tag);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
     }
 }

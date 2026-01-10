@@ -1,5 +1,7 @@
-﻿using BookReviewer.Models.Identity;
+﻿using System.Security.Claims;
+using BookReviewer.Models.Identity;
 using BookReviewer.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -80,6 +82,23 @@ namespace BookReviewer.Controllers
 
             return Ok(new { token });
         }
+
+        [HttpGet("me")]
+        [Authorize]
+        public IActionResult Me()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var username = User.Identity?.Name;
+            var role = User.FindFirstValue(ClaimTypes.Role);
+
+            return Ok(new
+            {
+                Id = userId,
+                Username = username,
+                Role = role
+            });
+        }
+
     }
 
     // -------------------------
