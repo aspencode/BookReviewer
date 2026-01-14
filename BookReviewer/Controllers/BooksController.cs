@@ -19,10 +19,11 @@ namespace BookReviewer.Controllers
             _context = context;
         }
 
-        // GET: api/books
         // GET: api/books?pageNumber=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<PagedResult<BookListDto>>> GetBooks([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResult<BookListDto>>> GetBooks(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             var query = _context.Books.AsQueryable();
 

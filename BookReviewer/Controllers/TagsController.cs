@@ -1,5 +1,6 @@
 ﻿using BookReviewer.Data;
 using BookReviewer.Models.DTOs.Books;
+using BookReviewer.Models.DTOs.Common;
 using BookReviewer.Models.DTOs.Tags;
 using BookReviewer.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -18,21 +19,39 @@ public class TagsController : ControllerBase
         _context = context;
     }
 
+
+    // GET: api/tags?pageNumber=1&pageSize=10
+
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TagDto>>> GetTags()
+    public async Task<ActionResult<PagedResult<TagListDto>>> GetTags(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
     {
-        return await _context.Tags
-            .Select(t => new TagDto
+        var query = _context.Tags.AsQueryable();
+        var totalCount = await query.CountAsync();
+        var tags = await query
+            .OrderBy(t=>t.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t=>new TagListDto
             {
                 Id = t.Id,
                 Name = t.Name
             })
             .ToListAsync();
+        var result = new PagedResult<TagListDto>
+        {
+            Items = tags,
+            TotalCount = totalCount,
+            PageSize = pageSize,
+            CurrentPage = pageNumber
+        };
+        return Ok(result);
     }
 
     [HttpPost]
     [Authorize]
-    public async Task<ActionResult<TagDto>> CreateTag(CreateTagDto dto)
+    public async Task<ActionResult<TagListDto>> CreateTag(CreateTagDto dto)
     {
         if (await _context.Tags.AnyAsync(t => t.Name == dto.Name))
             return BadRequest("Tag already exists");
@@ -41,7 +60,7 @@ public class TagsController : ControllerBase
         _context.Tags.Add(tag);
         await _context.SaveChangesAsync();
 
-        return new TagDto
+        return new TagListDto
         {
             Id = tag.Id,
             Name = tag.Name

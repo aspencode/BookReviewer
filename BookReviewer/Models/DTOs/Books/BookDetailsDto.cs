@@ -19,7 +19,7 @@ namespace BookReviewer.Models.DTOs.Books
         public int ReviewCount { get; set; }
 
         public string? ImageUrl { get; set; }
-        public List<ReviewDto> Reviews { get; set; } = new();
+        public List<ReviewListDto> Reviews { get; set; } = new();
         
     }
 }

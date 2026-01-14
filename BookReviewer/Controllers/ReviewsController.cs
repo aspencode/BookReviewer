@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using BookReviewer.Data;
+using BookReviewer.Models.DTOs.Common;
 using BookReviewer.Models.DTOs.Reviews;
 using BookReviewer.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -53,12 +54,26 @@ namespace BookReviewer.Controllers
             return Ok("Recenzja została dodana.");
         }
 
+        // GET: api/reviews/book/{bookId}?pageNumber=1&pageSize=10
+
+
         [HttpGet("book/{bookId}")]
-        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsForBook(int bookId)
+        public async Task<ActionResult<PagedResult<ReviewListDto>>> getReviews(
+            int bookId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var reviews = await _context.Reviews
-                .Where(r => r.BookId == bookId)
-                .Select(r => new ReviewDto
+
+            var query = _context.Reviews
+                .Where(r => r.BookId == bookId);
+
+            var totalCount = await query.CountAsync();
+
+            var reviews = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new ReviewListDto
                 {
                     Id = r.Id,
                     Rating = r.Rating,
@@ -68,8 +83,17 @@ namespace BookReviewer.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(reviews);
+            var result = new PagedResult<ReviewListDto>
+            {
+                Items = reviews,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = pageNumber
+            };
+
+            return Ok(result);
         }
+
 
         [HttpDelete("{id}")]
         [Authorize]

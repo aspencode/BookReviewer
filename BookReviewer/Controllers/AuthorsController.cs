@@ -1,5 +1,7 @@
 ﻿using BookReviewer.Data;
 using BookReviewer.Models.DTOs.Authors;
+using BookReviewer.Models.DTOs.Books;
+using BookReviewer.Models.DTOs.Common;
 using BookReviewer.Models.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,11 +20,20 @@ namespace BookReviewer.Controllers
             _context = context;
         }
 
-        // GET: api/authors
+        // GET: api/authors?pageNumber=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AuthorListDto>>> GetAuthors()
+        public async Task<ActionResult<PagedResult<AuthorListDto>>> GetAuthors(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var authors = await _context.Authors
+
+            var query = _context.Authors.AsQueryable();
+            var totalCount = await query.CountAsync();
+
+            var authors = await query
+                .OrderBy(a => a.Name)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(a => new AuthorListDto
                 {
                     Id = a.Id,
@@ -30,7 +41,15 @@ namespace BookReviewer.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(authors);
+            var result = new PagedResult<AuthorListDto>
+            {
+                Items = authors,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = pageNumber
+            };
+
+            return Ok(result);
         }
 
         // GET: api/authors/{id}
