@@ -20,10 +20,6 @@ namespace BookReviewer.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            
-            // Set default schema for all EF tables
-            //modelBuilder.HasDefaultSchema("bookdb_schema");
-
 
             // -------------------------
             // Book ↔ Author many-to-many

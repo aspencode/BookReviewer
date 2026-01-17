@@ -15,7 +15,7 @@ namespace BookReviewer.Services
             _config = config;
         }
 
-        public string GenerateToken(int userId, string role, string username)
+        public string GenerateToken(int userId, List<string> roles, string username)
         {
             var jwtSettings = _config.GetSection("Jwt");
 
@@ -28,12 +28,17 @@ namespace BookReviewer.Services
                 SecurityAlgorithms.HmacSha512
             );
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()), // user ID
-                new Claim(ClaimTypes.Name, username),                       // username
-                new Claim(ClaimTypes.Role, role)                            // role
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(ClaimTypes.Name, username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],

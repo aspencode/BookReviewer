@@ -47,7 +47,6 @@ namespace BookReviewer.Controllers
             if (!result.Succeeded)
                 return BadRequest(result.Errors.Select(e => e.Description));
 
-            // Optional: assign default role
             await _userManager.AddToRoleAsync(user, "User");
 
             return Ok("User registered successfully.");
@@ -75,11 +74,9 @@ namespace BookReviewer.Controllers
 
             // Get user's role
             var roles = await _userManager.GetRolesAsync(user);
-            var role = roles.FirstOrDefault() ?? "User";
-
-            // Generate JWT
-            var token = _jwtService.GenerateToken(user.Id, role, user.UserName!);
-
+            
+            // Przekazujemy listę ról (lub pierwszą główną) do generatora
+            var token = _jwtService.GenerateToken(user.Id, roles.ToList(), user.UserName!);
             return Ok(new { token });
         }
 

@@ -24,20 +24,19 @@ namespace BookReviewer.Controllers
         [Authorize]
         public async Task<IActionResult> CreateReview(CreateReviewDto dto)
         {
-            // 1. Pobranie ID użytkownika z tokena JWT
+
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return Unauthorized();
             
             int userId = int.Parse(userIdClaim);
 
-            // 2. Sprawdzenie czy książka istnieje
-            var bookExists = await _context.Books.AnyAsync(b => b.Id == dto.BookId);
-            if (!bookExists) return NotFound("Książka o podanym ID nie istnieje.");
 
-            // 3. Opcjonalne: Sprawdzenie czy użytkownik już dodało recenzję tej książki
+            var bookExists = await _context.Books.AnyAsync(b => b.Id == dto.BookId);
+            if (!bookExists) return NotFound("This book doesn't exist.");
+
             var alreadyReviewed = await _context.Reviews
                 .AnyAsync(r => r.BookId == dto.BookId && r.UserId == userId);
-            if (alreadyReviewed) return BadRequest("Recenzja dla tej książki została już dodana przez Ciebie.");
+            if (alreadyReviewed) return BadRequest("You have already reviewed this book.");
 
             var review = new Review
             {
@@ -51,7 +50,7 @@ namespace BookReviewer.Controllers
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
-            return Ok("Recenzja została dodana.");
+            return Ok("Review added.");
         }
 
         // GET: api/reviews/book/{bookId}?pageNumber=1&pageSize=10
@@ -79,7 +78,7 @@ namespace BookReviewer.Controllers
                     Rating = r.Rating,
                     Description = r.Description,
                     CreatedAt = r.CreatedAt,
-                    UserName = r.User.UserName ?? "Anonim"
+                    UserName = r.User.UserName ?? "Anon"
                 })
                 .ToListAsync();
 

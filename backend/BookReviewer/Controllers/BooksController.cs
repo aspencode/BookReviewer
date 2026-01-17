@@ -2,6 +2,7 @@
 using BookReviewer.Models.DTOs.Books;
 using BookReviewer.Models.DTOs.Common;
 using BookReviewer.Models.Entities;
+using BookReviewer.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,14 +24,66 @@ namespace BookReviewer.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResult<BookListDto>>> GetBooks(
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] BookSortBy sortBy = BookSortBy.Title,
+            [FromQuery] double? minRating = null,
+            [FromQuery] string? isbn = null,
+            [FromQuery] string? title = null,
+            [FromQuery] string? author = null) 
         {
-            var query = _context.Books.AsQueryable();
+            var query = _context.Books
+                .Include(b => b.Authors)
+                .Include(b => b.Reviews)
+                .AsQueryable();
+
+            // Filtrowanie po ISBN
+            if (!string.IsNullOrWhiteSpace(isbn))
+            {
+                query = query.Where(b => b.ISBN.Contains(isbn));
+            }
+
+            // Filtrowanie po tytule
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                var searchTitle = title.Trim().ToLower();
+                query = query.Where(b => b.Title.ToLower().Contains(searchTitle));
+            }
+
+            // Filtrowanie po autorze (przeszukuje listę autorów przypisanych do książki)
+            if (!string.IsNullOrWhiteSpace(author))
+            {
+                var searchAuthor = author.Trim().ToLower();
+                query = query.Where(b => b.Authors.Any(a => a.Name.ToLower().Contains(searchAuthor)));
+            }
+
+            // Filtrowanie po minimalnej ocenie
+            if (minRating.HasValue)
+            {
+                query = query.Where(b =>
+                    b.Reviews.Any() &&
+                    b.Reviews.Average(r => r.Rating) >= minRating.Value);
+            }
+
+            // sortowanie
+            query = sortBy switch
+            {
+                BookSortBy.Author => query.OrderBy(b =>
+                    b.Authors.OrderBy(a => a.Name)
+                             .Select(a => a.Name)
+                             .FirstOrDefault()),
+
+                BookSortBy.RatingAsc => query.OrderBy(b =>
+                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0),
+
+                BookSortBy.RatingDesc => query.OrderByDescending(b =>
+                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0),
+
+                _ => query.OrderBy(b => b.Title)
+            };
 
             var totalCount = await query.CountAsync();
 
             var books = await query
-                .OrderBy(b => b.Title) 
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(b => new BookListDto
@@ -38,22 +91,22 @@ namespace BookReviewer.Controllers
                     Id = b.Id,
                     ISBN = b.ISBN,
                     Title = b.Title,
+                    ImageUrl = b.ImageUrl,
                     Authors = b.Authors.Select(a => a.Name).ToList(),
-                    AverageRating = _context.CalculateAverageRating(b.Id),
-                    ImageUrl = b.ImageUrl 
+                    AverageRating = _context.CalculateAverageRating(b.Id)
                 })
                 .ToListAsync();
 
-            var result = new PagedResult<BookListDto>
+
+            return Ok(new PagedResult<BookListDto>
             {
                 Items = books,
                 TotalCount = totalCount,
                 PageSize = pageSize,
                 CurrentPage = pageNumber
-            };
-
-            return Ok(result);
+            });
         }
+
 
         // GET: api/books/{id}
         [HttpGet("{id:int}")]
@@ -104,18 +157,18 @@ namespace BookReviewer.Controllers
 
             //check on tags
             List<Tag> tags = new();
-            if (dto.TagIds != null) 
+            if (dto.TagIds != null)
             {
                 tags = await _context.Tags
                     .Where(t => dto.TagIds.Contains(t.Id))
                     .ToListAsync();
 
-                if (tags.Count !=dto.TagIds.Count)
+                if (tags.Count != dto.TagIds.Count)
                     return BadRequest("One or more tag IDs do not exist.");
             }
 
 
-                var book = new Book
+            var book = new Book
             {
                 ISBN = dto.ISBN,
                 Title = dto.Title,
@@ -145,7 +198,7 @@ namespace BookReviewer.Controllers
                     Description = book.Description,
                     ImageUrl = book.ImageUrl,
                     Authors = authors.Select(a => a.Name).ToList(),
-                    Tags = tags.Select(t=>t.Name).ToList(),
+                    Tags = tags.Select(t => t.Name).ToList(),
                     AverageRating = null,
                     ReviewCount = 0
                 }
@@ -215,6 +268,27 @@ namespace BookReviewer.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // DELETE: api/books/{id}
+        [HttpDelete("{id:int}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteBook(int id)
+        {
+            // find book
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
+
+            if (book == null)
+            {
+                return NotFound($"Book with ID {id} not found.");
+            }
+
+
+
+            _context.Books.Remove(book);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); 
         }
 
     }

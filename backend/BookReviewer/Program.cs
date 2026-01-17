@@ -85,7 +85,23 @@ builder.Services.AddAuthentication(options =>
 // Register JwtService with DI
 builder.Services.AddScoped<JwtService>();
 
+// cors for connection to frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend",
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
+
 var app = builder.Build();
+
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -94,17 +110,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseRouting();
+app.UseCors("Frontend");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Seed default roles (optional)
+
+
+// SEEDING ROLES AND ADMIN USER
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
-    string[] roles = new[] { "User", "Admin" };
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
+    Console.WriteLine("--> Start seeding...");
+
+    // 1. Create Roles
+    string[] roles = { "User", "Admin" };
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -112,7 +137,49 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole<int>(role));
         }
     }
+
+    // 2. Create Admin from appsettings.json
+    var adminSettings = config.GetSection("AdminAccount");
+    var adminEmail = adminSettings["Email"];
+    var adminUsername = adminSettings["Username"];
+    var adminPassword = adminSettings["Password"];
+
+    if (string.IsNullOrEmpty(adminEmail))
+    {
+        Console.WriteLine("admin login details not found in appsettings.json");
+    }
+    else
+    {
+        var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+        if (existingAdmin == null)
+        {
+            Console.WriteLine($"creating account for {adminEmail}");
+            var adminUser = new ApplicationUser
+            {
+                UserName = adminUsername,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            var createAdminResult = await userManager.CreateAsync(adminUser, adminPassword!);
+            if (createAdminResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                Console.WriteLine("admin created successfully");
+            }
+            else
+            {
+                Console.WriteLine("error creating admin: ");
+                foreach (var error in createAdminResult.Errors)
+                {
+                    Console.WriteLine($"{error.Description}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("admin already in db");
+        }
+    }
 }
-
-
 app.Run();
