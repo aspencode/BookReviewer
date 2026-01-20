@@ -205,6 +205,24 @@ namespace BookReviewer.Controllers
             );
         }
 
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // admin only
+        public async Task<IActionResult> DeleteBook(int id)
+        {
+
+            var book = await _context.Books.FindAsync(id);
+
+            if (book == null)
+            {
+                return NotFound($"Book id = {id} doesnt exist.");
+            }
+            _context.Books.Remove(book);
+
+            await _context.SaveChangesAsync();
+
+            return Ok($"Book '{book.Title}' was removed successfully.");
+        }
+
         [HttpPost("{id}/tags")]
         [Authorize]
         public async Task<ActionResult<BookDetailsDto>> AddTagsToBook(int id, AddTagsToBookDto dto)
@@ -270,26 +288,7 @@ namespace BookReviewer.Controllers
             return NoContent();
         }
 
-        // DELETE: api/books/{id}
-        [HttpDelete("{id:int}")]
-        [Authorize]
-        public async Task<IActionResult> DeleteBook(int id)
-        {
-            // find book
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
 
-            if (book == null)
-            {
-                return NotFound($"Book with ID {id} not found.");
-            }
-
-
-
-            _context.Books.Remove(book);
-            await _context.SaveChangesAsync();
-
-            return NoContent(); 
-        }
 
     }
 }
